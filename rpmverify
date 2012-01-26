@@ -2,11 +2,10 @@
 
 import os, sys, subprocess, re, rpm, syslog
 
-#out = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+out = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
-#output = out.communicate()[0]
+output = out.communicate()[0]
 syslog.syslog("rpmverify: started\n")
-output = open("rpm.out", "r").read()
 
 configPattern = re.compile("^[SM5DLUGTP\.]*.*c \/", re.DOTALL)
 missingPattern = re.compile("^missing")
