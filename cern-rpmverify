@@ -5,7 +5,7 @@ import os, sys, subprocess, re, rpm, syslog
 out = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
 output = out.communicate()[0]
-syslog.syslog("rpmverify: started\n")
+syslog.syslog("cern-rpmverify: started\n")
 
 configPattern = re.compile("^[SM5DLUGTP\.]*.*c \/", re.DOTALL)
 missingPattern = re.compile("^missing")
@@ -33,7 +33,7 @@ headers = transactionSet.dbMatch()
 for header in headers:
 	for filename in header[rpm.RPMTAG_FILENAMES]:
 		if filename in failedChecksumFiles:				
-			syslog.syslog("rpmverify: File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+			syslog.syslog("cern-rpmverify: File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
 			 		header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
-syslog.syslog("rpmverify: finished\n")
+syslog.syslog("cern-rpmverify: finished\n")
 										 
