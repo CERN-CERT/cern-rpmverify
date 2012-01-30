@@ -5,6 +5,7 @@ Summary:	Logs warnings for modified files of an RPM and the RPM package that the
 Vendor:		CERN
 Group:		System Enviroment/Base
 License:	GPLv3
+BuildArch:	noarch
 URL:		http://www.cern.ch/security
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -14,7 +15,6 @@ Tool which looks for suspicious files by checking their hash with RPMso
 %package cron
 Summary:	cern-rpmverify cron job
 Group:		System Enviroment/Base
-BuildArch:	noarch
 Requires:	cern-rpmverify
 
 %description cron
