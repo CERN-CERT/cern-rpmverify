@@ -26,6 +26,7 @@ Cron job for cern-rpmverify
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
 install -m 0700 cern-rpmverify %{buildroot}/usr/bin/
+mkdir -p %{buildroot}/etc/cron.d
 install -m 0640 cern-rpmverify.cron %{buildroot}/etc/cron.d/
 
 %clean
