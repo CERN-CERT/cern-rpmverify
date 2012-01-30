@@ -14,6 +14,7 @@ Tool which looks for suspicious files by checking their hash with RPMso
 %package cron
 Summary:	cern-rpmverify cron job
 Group:		System Enviroment/Base
+BuildArch:	noarch
 Requires:	cern-rpmverify
 
 %description cron
