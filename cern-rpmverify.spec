@@ -16,7 +16,7 @@ Summary:	cern-rpmverify cron job
 Group:		System Enviroment/Base
 Requires:	cern-rpmverify
 
-%description
+%description cron
 Cron job for cern-rpmverify
 
 %prep
