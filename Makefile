@@ -1,4 +1,4 @@
-name      = netlog
+name      = cern-rpmverify
 
 srcrpm: archive
 	rpmbuild --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" -bs $(name).spec
