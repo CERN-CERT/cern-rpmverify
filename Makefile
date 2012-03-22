@@ -1,7 +1,12 @@
 name      = cern-rpmverify
 
-srcrpm: archive
-	rpmbuild --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" -bs $(name).spec
+srcrpm: archive slc5 slc6
+
+slc5:
+	rpmbuild --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" --define 'dist .slc5' -bs $(name).spec
+
+slc6:
+	rpmbuild --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" --define 'dist .slc6' -bs $(name).spec
 
 archive: 
 	rm -f $(name).tar.gz
