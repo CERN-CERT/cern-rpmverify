@@ -14,8 +14,7 @@ Source0: 	%{name}-%{version}.tgz
 Tool which looks for suspicious files by checking their hash with RPMso
 
 %prep
-#(cd %{_sourcedir}; tar --exclude .git -chf - *) | tar xf -
-tar zxf %{SOURCE0}
+%setup
 
 %install
 rm -rf %{buildroot}

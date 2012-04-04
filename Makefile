@@ -32,9 +32,11 @@ _increment_release:
 	@$(PERL) -pi -e 'die("invalid version: $$_\n") unless \
 	  s/^(\d+)\.(\d+)(.*?)$$/sprintf("%d.%d%s", $$1, $$2+1, $$4)/e' VERSION
 
-_update_spec: $(DISTS:=/$(name).spec)
+_update_spec: $(DISTS:=.spec)
+
+%.spec: dist.%/$(name).spec
 	@version=`cat VERSION`; \
-	$(SED) -i -e "s/^\(%define kmod_driver_version\s\+\)\S\+\s*$$/\1$$version/" $^
+	$(SED) -i -e "s/^\(%define kmod_driver_version\s\+\)\S\+\s*$$/\1$$version/" $<
 
 _git_commit_tag:
 	@version=`cat VERSION`; \
@@ -63,10 +65,14 @@ release:    _increment_release _update_spec _git_commit_tag
 
 srcrpm: $(name).spec $(name).tgz
 	@$(RPMBUILD) --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" -bs $<
+	@version=`cat VERSION`; rm -f $(name)-$$version.tgz
 
 %.tgz:
 	@version=`cat VERSION`; \
-	tar --no-recursion --exclude .git --exclude "*.rpm" --exclude "*.tgz" --exclude "*.spec" -zchf $*-$$version.tgz *
+	mkdir $(name)-$$version; \
+	rsync -a --exclude $(name)-$$version --exclude ".git*" --exclude "*.spec" --exclude "*.rpm" --exclude "*.tgz" --exclude "dist.*" . $(name)-$$version/; \
+	tar -zchf $*-$$version.tgz $(name)-$$version/; \
+	rm -rf $(name)-$$version/
 
 clean:
 	@rm -f *.rpm *tgz
