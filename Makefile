@@ -1,13 +1,72 @@
+#
+# Variables needed to build the kernel module
+#
 name      = cern-rpmverify
 
-srcrpm: archive slc5 slc6
+#
+# variables for all external commands (we try to be verbose)
+#
 
-slc5:
-	rpmbuild --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" --define 'dist .slc5' -bs $(name).spec
+GIT      = git
+PERL     = perl
+RPMBUILD = rpmbuild
+SED      = sed
 
-slc6:
-	rpmbuild --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" --define 'dist .slc6' -bs $(name).spec
+#+++############################################################################
+#                                                                              #
+# version management                                                           #
+#                                                                              #
+#---############################################################################
 
-archive: 
-	rm -f $(name).tar.gz
-	tar --exclude .git --exclude *.rpm --exclude $(name).spec -zchf $(name).tar.gz *
+#
+# internal targets
+#
+
+.PHONY: _increment_version _increment_release _update_spec _git_commit_tag
+
+_increment_version:
+	@$(PERL) -pi -e 'die("invalid version: $$_\n") unless \
+	  s/^(\d+)\.(\d+)(.*?)$$/sprintf("%d.%d%s", $$1+1, 0, $$4)/e' VERSION
+
+_increment_release:
+	@$(PERL) -pi -e 'die("invalid version: $$_\n") unless \
+	  s/^(\d+)\.(\d+)(.*?)$$/sprintf("%d.%d%s", $$1, $$2+1, $$4)/e' VERSION
+
+_update_spec: $(DISTS:=/$(name).spec)
+	@version=`cat VERSION`; \
+	$(SED) -i -e "s/^\(%define kmod_driver_version\s\+\)\S\+\s*$$/\1$$version/" $^
+
+_git_commit_tag:
+	@version=`cat VERSION`; \
+	$(GIT) commit -a -m "global commit for version $$version" || exit 1; \
+	tag=`$(PERL) -pe 's/^/v/; s/\./_/g' VERSION`; \
+	$(GIT) tag $$tag || exit 1; \
+        $(GIT) push || exit 1; \
+        $(GIT) push origin $$tag || exit 1; \
+	echo "New version is $$version (tag $$tag)"
+
+#
+# standard targets
+#
+
+version:    _increment_version _update_spec _git_commit_tag
+
+release:    _increment_release _update_spec _git_commit_tag
+
+
+#+++############################################################################
+#                                                                              #
+# RPMs building                                                                #
+#                                                                              #
+#---############################################################################
+
+
+srcrpm: $(name).spec $(name).tgz
+	@$(RPMBUILD) --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" -bs $<
+
+%.tgz:
+	@version=`cat VERSION`; \
+	tar --no-recursion --exclude .git --exclude "*.rpm" --exclude "*.tgz" --exclude "*.spec" -zchf $*-$$version.tgz *
+
+clean:
+	@rm -f *.rpm *tgz

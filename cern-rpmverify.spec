@@ -8,7 +8,7 @@ License:	GPLv3
 BuildArch:	noarch
 URL:		http://www.cern.ch/security
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Source0: 	cern-rpmverify.tar.gz
+Source0: 	%{name}-%{version}.tgz
 
 %description
 Tool which looks for suspicious files by checking their hash with RPMso
