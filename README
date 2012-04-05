@@ -1,0 +1,61 @@
+				+-----------------------------------+
+				+           cern-rpmverify          +        
+				+-----------------------------------+
+
+Product name: 			cern-rpmverify
+Date:				Apr 5 2012
+Version:			3.0
+Vendor:				CERN
+Author:				Panos Sakkos while at Computer Security Team 
+CST Email:			cert-sec@cern.ch
+Author Email:			<panos.sakkos@cern.ch> 
+License: 			GPLv3	
+
+					+-------+
+					|License|
+					+-------+
+
+Copyright 2012 CERN. This software is distributed under the terms of the GNU General Public
+Licence version 3 (GPL Version 3), copied verbatim in the file COPYING. In applying this licence,
+CERN does not waive the privileges and immunities granted to it by virtue of its status as an 
+Intergovernmental Organization or submit itself to any jurisdiction.
+
+					+-----------+
+					|Description|
+					+-----------+
+
+cern-rpmverify is designed to detect changes in the files that are installed by rpm packages.
+It will log the changed files as well as the rpm packages that they belong at the local syslog facility.
+Configuration files are ignored, because they are supposed to be changed. You need root priviledges to execute
+cern-rpmverify, otherwise all the files that need root privileges will be ignored.
+
+*IMPORTANT*
+
+If you want to run a more strict rpm verification, execute 'rpm -V --all'. With this command you will
+get information about not only changed files, but changes in permissions etc.
+
+				+--------------------------+
+				|Format of the log messages|
+				+--------------------------+
+
+Feb  9 14:50:23 localhost python: cern-rpmverify: started
+Feb  9 15:04:02 localhost python: cern-rpmverify: File /usr/bin/catchsegv from package glibc-common-2.12-1.47.el6 has been modified
+Feb  9 15:04:04 localhost python: cern-rpmverify: File /usr/bin/consolehelper from package usermode-1.102-3.el6 has been modified
+Feb  9 14:55:15 localhost python: cern-rpmverify: finished
+
+				+------------------------------+
+				|Before reading the source code|
+				+------------------------------+
+
+You need to know how the rpm works and the information that you can fetch from the rpm database.
+Familiarity with python would be usefull.  
+
+The code has been tested against rpm 4.8.0 and 4.4.2.3
+
+					+----------+
+					|References|
+					+----------+
+
+Python API:
+	http://rpm5.org/docs/api/group__python.html
+
