@@ -4,6 +4,12 @@
 name      = cern-rpmverify
 
 #
+# Distributions which src rpms are built for by default
+# The corresponding spec file is needed: DIST/$(name).spec
+#
+DISTS    = slc5 slc6
+
+#
 # variables for all external commands (we try to be verbose)
 #
 
@@ -36,7 +42,7 @@ _update_spec: $(DISTS:=.spec)
 
 %.spec: dist.%/$(name).spec
 	@version=`cat VERSION`; \
-	$(SED) -i -e "s/^\(%define kmod_driver_version\s\+\)\S\+\s*$$/\1$$version/" $<
+	$(SED) -i -e "s/^\(Version:\s\+\)\S\+\s*$$/\1$$version/" $<
 
 _git_commit_tag:
 	@version=`cat VERSION`; \
@@ -63,9 +69,13 @@ release:    _increment_release _update_spec _git_commit_tag
 #---############################################################################
 
 
-srcrpm: $(name).spec $(name).tgz
-	@$(RPMBUILD) --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}" -bs $<
-	@version=`cat VERSION`; rm -f $(name)-$$version.tgz
+srcrpm: $(DISTS:=.srcrpm) $(DISTS:=.clean)
+
+slc5.srcrpm: dist.slc5/$(name).spec dist.slc5/$(name).tgz
+	@$(RPMBUILD) --define "_sourcedir ${PWD}/dist.slc5" --define "_srcrpmdir ${PWD}" --define "dist .slc5" --define '_source_filedigest_algorithm 1' --define '_binary_filedigest_algorithm 1' --define '_binary_payload w9.gzdio' -bs $<
+
+%.srcrpm: dist.%/$(name).spec dist.%/$(name).tgz
+	@$(RPMBUILD) --define "_sourcedir ${PWD}/dist.$*" --define "_srcrpmdir ${PWD}" --define "dist .$*" -bs $<
 
 %.tgz:
 	@version=`cat VERSION`; \
@@ -74,5 +84,8 @@ srcrpm: $(name).spec $(name).tgz
 	tar -zchf $*-$$version.tgz $(name)-$$version/; \
 	rm -rf $(name)-$$version/
 
-clean:
-	@rm -f *.rpm *tgz
+clean: $(DISTS:=.clean)
+	@rm -f *.rpm
+
+%.clean:
+	@rm -f dist.$*/*.tgz
