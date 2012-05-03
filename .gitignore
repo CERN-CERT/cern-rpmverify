@@ -3,5 +3,6 @@
 # Vi swap files
 .*.swp
 
+*.tgz
 *.tar.gz
 *.rpm
