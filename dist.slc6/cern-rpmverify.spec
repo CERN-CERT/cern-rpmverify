@@ -8,13 +8,16 @@ License:	GPLv3
 BuildArch:	noarch
 URL:		http://www.cern.ch/security
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Source0: 	%{name}-%{version}.tgz
+Source0:	%{name}-%{version}.tgz
 
 %description
-Tool which looks for suspicious files by checking their hash with RPMso
+Checks the integrity of the files installed via RPM by comparing their integrity to the RPM DB.
 
 %prep
-%setup
+
+%setup -q
+
+%build
 
 %install
 rm -rf %{buildroot}
