@@ -1,17 +1,18 @@
 Name:		cern-rpmverify
 Version:	3.1
 Release:	1%{?dist}
-Summary:	Logs warnings for modified files of an RPM and the RPM package that they belong.
+Summary:	Logs warnings for modified files of an RPM and the RPM package that they belong
 Vendor:		CERN
-Group:		System Enviroment/Base
-License:	GPLv3
+Group:		Applications/System
+License:	GPLv2+
 BuildArch:	noarch
-URL:		http://www.cern.ch/security
+URL:		http://www.cern.ch/
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source0:	%{name}-%{version}.tgz
 
 %description
-Checks the integrity of the files installed via RPM by comparing their integrity to the RPM DB.
+Checks the integrity of the files installed via RPM by comparing their
+integrity to the RPM DB.
 
 %prep
 
@@ -32,3 +33,5 @@ rm -rf %{buildroot}
 /usr/bin/cern-rpmverify
 
 %changelog
+* Wed May 23 2012 Remi Mollon <Remi.Mollon@cern.ch> - 3.1
+- changed packaging to be compliant to rpmlint
