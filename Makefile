@@ -59,9 +59,9 @@ _update_spec: $(DISTS:=.specfile)
 
 %.specfile: $(name).spec
 	@version=`cat VERSION | cut -d- -f1`; \
-	$(SED) -i -e "s/^\(%define kmod_driver_version\s\+\)\S\+\s*$$/\1$$version/" $<
+	$(SED) -i -e "s/^\(Version:\s\+\)\S\+\s*$$/\1$$version/" $<
 	@release=`cat VERSION | cut -d- -f2`; \
-	$(SED) -i -e "s/^\(%define kmod_rpm_release\s\+\)\S\+\s*$$/\1$$release/" $<
+	$(SED) -i -e "s/^\(Release:\s\+\)\d\+\(\S*\)\s*$$/\1$$release\2/" $<
 
 _git_commit_tag:
 	@version=`cat VERSION | cut -d- -f1`; \
