@@ -1,4 +1,1 @@
-#Analysis of URLgrep URL logs using CReMA to provide search criteria.
-SHELL=/bin/bash
-MAILTO=service-security-monitoring@cern.ch
 0 1 * * * root /usr/bin/cern-rpmverify
