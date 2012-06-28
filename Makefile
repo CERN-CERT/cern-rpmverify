@@ -55,9 +55,9 @@ _increment_release_build:
 	@$(PERL) -pi -e 'die("invalid version: $$_\n") unless \
 	  s/^(\d+)\.(\d+)-(\d+)(.*?)$$/sprintf("%d.%d-%d%s", $$1, $$2, $$3+1, $$4)/e' VERSION
 
-_update_spec: $(DISTS:=.spec)
+_update_spec: $(DISTS:=.specfile)
 
-%.spec: $(name).spec
+%.specfile: $(name).spec
 	@version=`cat VERSION | cut -d- -f1`; \
 	$(SED) -i -e "s/^\(%define kmod_driver_version\s\+\)\S\+\s*$$/\1$$version/" $<
 	@release=`cat VERSION | cut -d- -f2`; \
