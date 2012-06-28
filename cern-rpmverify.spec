@@ -24,6 +24,7 @@ integrity to the RPM DB.
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
 install -m 0700 cern-rpmverify %{buildroot}/usr/bin/
+install -m 0644 cern-rpmverify.cron %{buildroot}/etc/cron.d/
 
 %clean
 rm -rf %{buildroot}
@@ -31,7 +32,10 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 /usr/bin/cern-rpmverify
+/etc/cron.d/cern-rpmverify.cron
 
 %changelog
+* Thu Jun 28 2012 Remi Mollon <Remi.Mollon@cern.ch> - 3.2
+- added cron job
 * Wed May 23 2012 Remi Mollon <Remi.Mollon@cern.ch> - 3.1
 - changed packaging to be compliant to rpmlint
