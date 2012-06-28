@@ -23,6 +23,7 @@ integrity to the RPM DB.
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
+mkdir -p %{buildroot}/etc/cron.d/
 install -m 0700 cern-rpmverify %{buildroot}/usr/bin/
 install -m 0644 cern-rpmverify.cron %{buildroot}/etc/cron.d/
 
