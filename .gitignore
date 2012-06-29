@@ -6,3 +6,5 @@
 *.tgz
 *.tar.gz
 *.rpm
+
+.DS_Store
