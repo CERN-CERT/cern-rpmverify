@@ -1,6 +1,6 @@
 #!/usr/bin/python2.6
 
-import os, sys, subprocess, re, rpm, syslog
+import subprocess, re, rpm, syslog
 
 out = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
