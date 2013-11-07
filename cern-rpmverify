@@ -74,4 +74,3 @@ for filename in failedCapability:
     syslog.syslog("Capacity on file " + filename + " from unknown package  has been modified\n")
 
 syslog.syslog("finished\n")
-										 
