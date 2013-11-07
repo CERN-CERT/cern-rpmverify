@@ -2,9 +2,8 @@
 
 import subprocess, re, rpm, syslog
 
-out = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+proc = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
-output = out.communicate()[0]
 syslog.openlog('cern-rpmverify')
 syslog.syslog("started\n")
 
@@ -14,7 +13,7 @@ checksumPattern = re.compile("^.*5.*(?P<file> \/.*)", re.DOTALL)
 
 failedChecksumFiles = []
 
-for line in output.split('\n'):
+for line in iter(proc.stdout.readline, ''):
 	line = line.strip()
 	if configPattern.match(line):
 		#skip configuration files
@@ -25,6 +24,9 @@ for line in output.split('\n'):
 	elif checksumPattern.match(line):
 		#checksum failure. report
 		failedChecksumFiles.append(checksumPattern.search(line).group(1).strip())
+
+for line in iter(proc.stderr.readline, ''):
+    syslog.syslog("Error: ''{0}''\n".format(line))
 
 #Get the rpm package names that these files belong to
 
