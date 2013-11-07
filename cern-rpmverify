@@ -7,23 +7,41 @@ proc = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr
 syslog.openlog('cern-rpmverify')
 syslog.syslog("started\n")
 
-configPattern = re.compile("^[SM5DLUGTP\.]*.*c \/", re.DOTALL)
 missingPattern = re.compile("^missing")
-checksumPattern = re.compile("^.*5.*(?P<file> \/.*)", re.DOTALL)
+matchPattern = re.compile(r'^(?P<size>\.|S)'
+                            '(?P<mode>\.|M)'
+                            '(?P<md5>\.|5)'
+                            '(?P<device>\.|D)'
+                            '(?P<link>\.|L)'
+                            '(?P<user>\.|U)'
+                            '(?P<group>\.|G)'
+                            '(?P<mtime>\.|T)'
+                            '(?P<capability>\.|P)'
+                            '  (?P<attribute>[cdglr ]?) '
+                            '(?P<filename>\/.*)$')
 
 failedChecksumFiles = []
+failedLink = []
+failedCapability = []
 
 for line in iter(proc.stdout.readline, ''):
-	line = line.strip()
-	if configPattern.match(line):
-		#skip configuration files
-		continue
-	elif missingPattern.match(line):
-		#skip missing files
-		continue
-	elif checksumPattern.match(line):
-		#checksum failure. report
-		failedChecksumFiles.append(checksumPattern.search(line).group(1).strip())
+    line = line.strip()
+    if missingPattern.match(line):
+        #skip missing files
+        continue
+    match = matchPattern.match(line)
+    if match is None:
+        syslog.syslog("Error parsing ''{0}''\n".format(line))
+        continue
+    if match.group('attribute') == 'c':
+        #skip config files
+        continue
+    if match.group('md5') != '.':
+        failedChecksumFiles.append(match.group('filename').strip())
+    if match.group('link') != '.':
+        failedLink.append(match.group('filename').strip())
+    if match.group('capability') != '.':
+        failedCapability.append(match.group('filename').strip())
 
 for line in iter(proc.stderr.readline, ''):
     syslog.syslog("Error: ''{0}''\n".format(line))
@@ -34,9 +52,26 @@ transactionSet = rpm.TransactionSet()
 headers = transactionSet.dbMatch()
 
 for header in headers:
-	for filename in header[rpm.RPMTAG_FILENAMES]:
-		if filename in failedChecksumFiles:				
-			syslog.syslog("File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-			 		header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+    for filename in header[rpm.RPMTAG_FILENAMES]:
+        if filename in failedChecksumFiles:				
+            syslog.syslog("File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                          header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+            failedChecksumFiles.remove(filename)
+        if filename in failedLink:				
+            syslog.syslog("Link " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                          header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+            failedLink.remove(filename)
+        if filename in failedCapability:				
+            syslog.syslog("Capacity on file " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                          header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+            failedCapability.remove(filename)
+
+for filename in failedChecksumFiles:
+    syslog.syslog("File " + filename + " from unknown package  has been modified\n")
+for filename in failedLink:
+    syslog.syslog("Link " + filename + " from unknown package  has been modified\n")
+for filename in failedCapability:
+    syslog.syslog("Capacity on file " + filename + " from unknown package  has been modified\n")
+
 syslog.syslog("finished\n")
 										 
