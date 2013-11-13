@@ -1,6 +1,6 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
 
-import subprocess, re, rpm, syslog
+import subprocess, re, rpm, sys, syslog
 
 proc = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
@@ -31,7 +31,10 @@ for line in iter(proc.stdout.readline, ''):
         continue
     match = matchPattern.match(line)
     if match is None:
-        syslog.syslog("Error parsing ''{0}''\n".format(line))
+        if sys.version_info < (2, 6, 0, '', 0):
+            syslog.syslog("Error parsing ''%s''\n" % line)
+        else:
+            syslog.syslog("Error parsing ''{0}''\n".format(line))
         continue
     if match.group('attribute') == 'c':
         #skip config files
@@ -40,11 +43,15 @@ for line in iter(proc.stdout.readline, ''):
         failedChecksumFiles.append(match.group('filename').strip())
     if match.group('link') != '.':
         failedLink.append(match.group('filename').strip())
-    if match.group('capability') != '.':
-        failedCapability.append(match.group('filename').strip())
+    if sys.version_info >= (2, 6, 0, '', 0):
+        if match.group('capability') != '.':
+            failedCapability.append(match.group('filename').strip())
 
 for line in iter(proc.stderr.readline, ''):
-    syslog.syslog("Error: ''{0}''\n".format(line))
+    if sys.version_info < (2, 6, 0, '', 0):
+        syslog.syslog("Error: ''%s''\n" % line)
+    else:
+        syslog.syslog("Error: ''{0}''\n".format(line))
 
 #Get the rpm package names that these files belong to
 
