@@ -15,17 +15,29 @@ syslog.openlog('cern-rpmverify')
 syslog.syslog("started\n")
 
 missingPattern = re.compile("^missing")
-matchPattern = re.compile(r'^(?P<size>\.|S)'
-                            '(?P<mode>\.|M)'
-                            '(?P<md5>\.|5)'
-                            '(?P<device>\.|D)'
-                            '(?P<link>\.|L)'
-                            '(?P<user>\.|U)'
-                            '(?P<group>\.|G)'
-                            '(?P<mtime>\.|T)'
-                            '(?P<capability>\.|P)'
-                            '  (?P<attribute>[cdglr ]?) '
-                            '(?P<filename>\/.*)$')
+if float(distrib[1]) < 6:
+    matchPattern = re.compile(r'^(?P<size>\.|S)'
+                                '(?P<mode>\.|M)'
+                                '(?P<md5>\.|5)'
+                                '(?P<device>\.|D)'
+                                '(?P<link>\.|L)'
+                                '(?P<user>\.|U)'
+                                '(?P<group>\.|G)'
+                                '(?P<mtime>\.|T)'
+                                '  (?P<attribute>[cdglr ]?) '
+                                '(?P<filename>\/.*)$')
+else:
+    matchPattern = re.compile(r'^(?P<size>\.|S)'
+                                '(?P<mode>\.|M)'
+                                '(?P<md5>\.|5)'
+                                '(?P<device>\.|D)'
+                                '(?P<link>\.|L)'
+                                '(?P<user>\.|U)'
+                                '(?P<group>\.|G)'
+                                '(?P<mtime>\.|T)'
+                                '(?P<capability>\.|P)'
+                                '  (?P<attribute>[cdglr ]?) '
+                                '(?P<filename>\/.*)$')
 
 failedChecksumFiles = []
 failedLink = []
