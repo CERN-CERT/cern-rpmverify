@@ -18,7 +18,7 @@ missingPattern = re.compile("^missing")
 if float(distrib[1]) < 6:
     matchPattern = re.compile(r'^(?P<size>\.|S)'
                                 '(?P<mode>\.|M)'
-                                '(?P<md5>\.|5)'
+                                '(?P<md5>[\?\.5])'
                                 '(?P<device>\.|D)'
                                 '(?P<link>\.|L)'
                                 '(?P<user>\.|U)'
@@ -29,7 +29,7 @@ if float(distrib[1]) < 6:
 else:
     matchPattern = re.compile(r'^(?P<size>\.|S)'
                                 '(?P<mode>\.|M)'
-                                '(?P<md5>\.|5)'
+                                '(?P<md5>[\?\.5])'
                                 '(?P<device>\.|D)'
                                 '(?P<link>\.|L)'
                                 '(?P<user>\.|U)'
