@@ -73,30 +73,32 @@ for line in iter(proc.stderr.readline, ''):
         syslog.syslog("Error: ''{0}''\n".format(line))
 
 #Get the rpm package names that these files belong to
+try:
+    transactionSet = rpm.TransactionSet()
+    headers = transactionSet.dbMatch()
 
-transactionSet = rpm.TransactionSet()
-headers = transactionSet.dbMatch()
+    for header in headers:
+        for filename in header[rpm.RPMTAG_FILENAMES]:
+            if filename in failedChecksumFiles:				
+                syslog.syslog("File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                              header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                failedChecksumFiles.remove(filename)
+            if filename in failedLink:				
+                syslog.syslog("Link " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                              header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                failedLink.remove(filename)
+            if filename in failedCapability:				
+                syslog.syslog("Capacity on file " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                              header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                failedCapability.remove(filename)
 
-for header in headers:
-    for filename in header[rpm.RPMTAG_FILENAMES]:
-        if filename in failedChecksumFiles:				
-            syslog.syslog("File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                          header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
-            failedChecksumFiles.remove(filename)
-        if filename in failedLink:				
-            syslog.syslog("Link " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                          header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
-            failedLink.remove(filename)
-        if filename in failedCapability:				
-            syslog.syslog("Capacity on file " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                          header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
-            failedCapability.remove(filename)
-
-for filename in failedChecksumFiles:
-    syslog.syslog("File " + filename + " from unknown package  has been modified\n")
-for filename in failedLink:
-    syslog.syslog("Link " + filename + " from unknown package  has been modified\n")
-for filename in failedCapability:
-    syslog.syslog("Capacity on file " + filename + " from unknown package  has been modified\n")
+    for filename in failedChecksumFiles:
+        syslog.syslog("File " + filename + " from unknown package  has been modified\n")
+    for filename in failedLink:
+        syslog.syslog("Link " + filename + " from unknown package  has been modified\n")
+    for filename in failedCapability:
+        syslog.syslog("Capacity on file " + filename + " from unknown package  has been modified\n")
+except rpm._rpm.error as e:
+    syslog.syslog("Error in the RPM code: {0}".format(str(e)))
 
 syslog.syslog("finished\n")
