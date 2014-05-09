@@ -1,8 +1,12 @@
 #!/usr/bin/python
 
-import platform, subprocess, re, sys, syslog
 import os
+import platform
 import psutil
+import re
+import subprocess
+import sys
+import syslog
 
 cur = psutil.Process(os.getpid())
 cur.set_nice(18)
