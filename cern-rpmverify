@@ -133,6 +133,10 @@ def get_broken_packages(logger):
     return (failedChecksumFiles, failedLink, failedCapability)
 
 
+def format_package(header):
+    return '{0}-{1}-{2}'.format(header[rpm.RPMTAG_NAME], header[rpm.RPMTAG_VERSION], header[rpm.RPMTAG_RELEASE])
+
+
 def analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability):
     try:
         transactionSet = rpm.TransactionSet()
@@ -141,16 +145,13 @@ def analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability):
         for header in headers:
             for filename in header[rpm.RPMTAG_FILENAMES]:
                 if filename in failedChecksumFiles:
-                    logger.info("File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                                header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                    logger.info('File {0} from package {1} has been modified'.format(filename, format_package(header)))
                     failedChecksumFiles.remove(filename)
                 if filename in failedLink:
-                    logger.info("Link " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                                header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                    logger.info('Link {0} from package {1} has been modified'.format(filename, format_package(header)))
                     failedLink.remove(filename)
                 if filename in failedCapability:
-                    logger.info("Capacity on file " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                                header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                    logger.info('Capacity on file {0} from package {1} has been modified'.format(filename, format_package(header)))
                     failedCapability.remove(filename)
 
         for filename in failedChecksumFiles:
