@@ -7,9 +7,6 @@ import subprocess
 import sys
 import syslog
 
-cur = psutil.Process(os.getpid())
-cur.set_nice(18)
-cur.set_ionice(psutil.IOPRIO_CLASS_BE, value=6)
 
 try:
     import rpm
@@ -31,11 +28,16 @@ MATCH_RE   = re.compile(r'^(?P<size>\.|S)'
                          '  (?P<attribute>[cdglr ]?) '
                          '(?P<filename>\/.*)$')
 
-proc = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
-child = psutil.Process(proc.pid)
-child.set_nice(19)
-child.set_ionice(psutil.IOPRIO_CLASS_BE, value=7)
+def renice(process_id, nice=18, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=6):
+    process = psutil.Process(process_id)
+    process.set_nice(nice)
+    process.set_ionice(ioclass, value=iovalue)
+
+
+renice(os.getpid())
+proc = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+renice(proc.pid, nice=19, iovalue=7)
 
 syslog.openlog('cern-rpmverify')
 syslog.syslog("started\n")
