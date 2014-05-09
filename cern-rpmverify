@@ -1,11 +1,18 @@
-#!/usr/bin/python
+#!/usr/bin/env python2.6
 
+import functools
+import logging
+import logging.handlers
 import os
 import psutil
 import re
+import select
+import signal
 import subprocess
 import sys
 import syslog
+from time import sleep
+import threading
 
 
 try:
@@ -28,6 +35,30 @@ MATCH_RE   = re.compile(r'^(?P<size>\.|S)'
                          '  (?P<attribute>[cdglr ]?) '
                          '(?P<filename>\/.*)$')
 
+TIMEOUT = 3600 * 22
+GRACE   = 60
+
+
+def logged(fn):
+    """Decorator for logging"""
+    @functools.wraps(fn)
+    def wrapped(*args, **kwargs):
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.DEBUG)
+        handler = logging.handlers.SysLogHandler(address='/dev/log')
+        formatter = logging.Formatter('cern-rpmverify: %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.info('started')
+        try:
+            fn(*args, logger=logger, **kwargs)
+            logger.info('finished')
+        except KeyboardInterrupt:
+            logger.error('killed')
+        except Exception as e:
+            logger.error('failed: {0}'.format(str(e)))
+    return wrapped
+
 
 def renice(process_id, nice=18, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=6):
     process = psutil.Process(process_id)
@@ -35,75 +66,109 @@ def renice(process_id, nice=18, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=6):
     process.set_ionice(ioclass, value=iovalue)
 
 
-renice(os.getpid())
-proc = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-renice(proc.pid, nice=19, iovalue=7)
+def timeout(logger, process, name):
+    if process.poll() is None:
+        logger.error('{0} timeout'.format(name))
+        process.terminate()
+    sleep(GRACE)
+    if process.poll() is None:
+        logger.error('{0} timeout HARD'.format(name))
+        process.terminate()
 
-syslog.openlog('cern-rpmverify')
-syslog.syslog("started\n")
 
-missingPattern = re.compile("^missing")
+class Timed(object):
+    def __init__(self, logger, process, name):
+        self._timer = threading.Timer(1.0 * TIMEOUT, timeout, [logger, process, name])
+    def __enter__(self):
+        self._timer.start()
+    def __exit__(self, ex_type, _ex_value, _tb):
+        self._timer.cancel()
 
-failedChecksumFiles = []
-failedLink = []
-failedCapability = []
 
-for line in iter(proc.stdout.readline, ''):
-    line = line.strip()
-    if missingPattern.match(line):
+def process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, line):
+    if MISSING_RE.match(line):
         #skip missing files
-        continue
-    match = matchPattern.match(line)
+        return
+    match = MATCH_RE.match(line)
     if match is None:
-        if sys.version_info < (2, 6, 0, '', 0):
-            syslog.syslog("Error parsing ''%s''\n" % line)
-        else:
-            syslog.syslog("Error parsing ''{0}''\n".format(line))
-        continue
+        if line == '':
+            return
+        logger.info("Error parsing ''{0}''\n".format(line))
+        return
     if match.group('attribute') == 'c':
         #skip config files
-        continue
+        return
     if match.group('md5') != '.':
         failedChecksumFiles.append(match.group('filename').strip())
     if match.group('link') != '.':
         failedLink.append(match.group('filename').strip())
-    if sys.version_info >= (2, 6, 0, '', 0):
-        if match.group('capability') != '.':
-            failedCapability.append(match.group('filename').strip())
+    if match.group('capability') != '.':
+        failedCapability.append(match.group('filename').strip())
 
-for line in iter(proc.stderr.readline, ''):
-    if sys.version_info < (2, 6, 0, '', 0):
-        syslog.syslog("Error: ''%s''\n" % line)
-    else:
-        syslog.syslog("Error: ''{0}''\n".format(line))
 
-#Get the rpm package names that these files belong to
-try:
-    transactionSet = rpm.TransactionSet()
-    headers = transactionSet.dbMatch()
+def get_broken_packages(logger):
+    failedChecksumFiles = []
+    failedLink = []
+    failedCapability = []
 
-    for header in headers:
-        for filename in header[rpm.RPMTAG_FILENAMES]:
-            if filename in failedChecksumFiles:				
-                syslog.syslog("File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                              header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
-                failedChecksumFiles.remove(filename)
-            if filename in failedLink:				
-                syslog.syslog("Link " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                              header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
-                failedLink.remove(filename)
-            if filename in failedCapability:				
-                syslog.syslog("Capacity on file " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
-                              header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
-                failedCapability.remove(filename)
+    process = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    renice(process.pid, nice=19, iovalue=7)
 
-    for filename in failedChecksumFiles:
-        syslog.syslog("File " + filename + " from unknown package  has been modified\n")
-    for filename in failedLink:
-        syslog.syslog("Link " + filename + " from unknown package  has been modified\n")
-    for filename in failedCapability:
-        syslog.syslog("Capacity on file " + filename + " from unknown package  has been modified\n")
-except rpm._rpm.error as e:
-    syslog.syslog("Error in the RPM code: {0}".format(str(e)))
+    with Timed(logger, process, "rpm -V --all"):
+        reads = [process.stdout.fileno(), process.stderr.fileno()]
+        while True:
+            ret = select.select(reads, [], [])
+            for fd in ret[0]:
+                if fd == process.stdout.fileno():
+                    process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
+                if fd == process.stderr.fileno():
+                    logger.error(process.stdout.readline().strip())
+            if process.poll() != None:
+                break
+        for line in iter(process.stdout.readline, ''):
+            process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
+        for line in iter(process.stderr.readline, ''):
+            logger.error(process.stdout.readline().strip())
 
-syslog.syslog("finished\n")
+    return (failedChecksumFiles, failedLink, failedCapability)
+
+
+def analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability):
+    try:
+        transactionSet = rpm.TransactionSet()
+        headers = transactionSet.dbMatch()
+
+        for header in headers:
+            for filename in header[rpm.RPMTAG_FILENAMES]:
+                if filename in failedChecksumFiles:
+                    logger.info("File " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                                header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                    failedChecksumFiles.remove(filename)
+                if filename in failedLink:
+                    logger.info("Link " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                                header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                    failedLink.remove(filename)
+                if filename in failedCapability:
+                    logger.info("Capacity on file " + filename + " from package " + header[rpm.RPMTAG_NAME] + "-" +
+                                header[rpm.RPMTAG_VERSION]+ "-" + header[rpm.RPMTAG_RELEASE] + " has been modified\n")
+                    failedCapability.remove(filename)
+
+        for filename in failedChecksumFiles:
+            logger.info("File " + filename + " from unknown package  has been modified\n")
+        for filename in failedLink:
+            logger.info("Link " + filename + " from unknown package  has been modified\n")
+        for filename in failedCapability:
+            logger.info("Capacity on file " + filename + " from unknown package  has been modified\n")
+    except rpm._rpm.error as e:
+        logger.error("Error in the RPM code: {0}".format(str(e)))
+
+
+@logged
+def main(logger):
+    renice(os.getpid())
+    (failedChecksumFiles, failedLink, failedCapability) = get_broken_packages(logger)
+    analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability)
+
+
+if __name__ == '__main__':
+    main()
