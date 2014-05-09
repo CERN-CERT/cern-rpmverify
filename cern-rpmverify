@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import os
-import platform
 import psutil
 import re
 import subprocess
@@ -12,13 +11,25 @@ cur = psutil.Process(os.getpid())
 cur.set_nice(18)
 cur.set_ionice(psutil.IOPRIO_CLASS_BE, value=6)
 
-
-distrib = platform.dist()
-if distrib[0] != 'redhat':
+try:
+    import rpm
+except:
     print("This tool can only run on redhat-derivated hosts")
     sys.exit(-1)
 
-import rpm
+
+MISSING_RE = re.compile("^missing")
+MATCH_RE   = re.compile(r'^(?P<size>\.|S)'
+                         '(?P<mode>\.|M)'
+                         '(?P<md5>[\?\.5])'
+                         '(?P<device>\.|D)'
+                         '(?P<link>\.|L)'
+                         '(?P<user>\.|U)'
+                         '(?P<group>\.|G)'
+                         '(?P<mtime>\.|T)'
+                         '(?P<capability>\.|P)'
+                         '  (?P<attribute>[cdglr ]?) '
+                         '(?P<filename>\/.*)$')
 
 proc = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
@@ -30,29 +41,6 @@ syslog.openlog('cern-rpmverify')
 syslog.syslog("started\n")
 
 missingPattern = re.compile("^missing")
-if float(distrib[1]) < 6:
-    matchPattern = re.compile(r'^(?P<size>\.|S)'
-                                '(?P<mode>\.|M)'
-                                '(?P<md5>[\?\.5])'
-                                '(?P<device>\.|D)'
-                                '(?P<link>\.|L)'
-                                '(?P<user>\.|U)'
-                                '(?P<group>\.|G)'
-                                '(?P<mtime>\.|T)'
-                                '  (?P<attribute>[cdglr ]?) '
-                                '(?P<filename>\/.*)$')
-else:
-    matchPattern = re.compile(r'^(?P<size>\.|S)'
-                                '(?P<mode>\.|M)'
-                                '(?P<md5>[\?\.5])'
-                                '(?P<device>\.|D)'
-                                '(?P<link>\.|L)'
-                                '(?P<user>\.|U)'
-                                '(?P<group>\.|G)'
-                                '(?P<mtime>\.|T)'
-                                '(?P<capability>\.|P)'
-                                '  (?P<attribute>[cdglr ]?) '
-                                '(?P<filename>\/.*)$')
 
 failedChecksumFiles = []
 failedLink = []
