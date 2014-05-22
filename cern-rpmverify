@@ -177,8 +177,8 @@ def dict_append(dic, key, val):
 def extract_sig(sig):
     raw = sig[1][2]
     if raw.startswith(' Key ID '):
-        return raw[7:]
-    return raw
+        return raw[7:].strip()
+    return raw.strip()
 
 
 def get_signing_keys(logger):
