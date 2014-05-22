@@ -59,6 +59,7 @@ def logged(fn):
             logger.error('killed')
         except Exception as e:
             logger.error('failed: {0}'.format(str(e)))
+            raise
     return wrapped
 
 
