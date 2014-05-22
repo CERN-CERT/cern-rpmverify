@@ -17,6 +17,7 @@ import threading
 
 try:
     import rpm
+    from rpmUtils.miscutils import getSigInfo
 except:
     print("This tool can only run on redhat-derivated hosts")
     sys.exit(-1)
@@ -37,6 +38,7 @@ MATCH_RE   = re.compile(r'^(?P<size>\.|S)'
 
 TIMEOUT = 3600 * 22
 GRACE   = 60
+SIG_THREASHOLD = 10
 
 
 def logged(fn):
@@ -164,12 +166,79 @@ def analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability):
         logger.error("Error in the RPM code: {0}".format(str(e)))
 
 
+def dict_append(dic, key, val):
+    try:
+        dic[key].append(val)
+    except KeyError:
+        dic[key] = [val]
+
+
+def extract_sig(sig):
+    raw = sig[1][2]
+    if raw.startswith(' Key ID '):
+        return raw[7:]
+    return raw
+
+
+def get_signing_keys(logger):
+    sigs = {}
+    wrong_sigs = {}
+    try:
+        transactionSet = rpm.TransactionSet()
+        headers = transactionSet.dbMatch()
+
+        for header in headers:
+            if not (header[rpm.RPMTAG_DSAHEADER] or header[rpm.RPMTAG_RSAHEADER]):
+                dict_append(wrong_sigs, 'UNSIGNED!', format_package(header))
+                continue
+            sig = getSigInfo(header)
+            if sig[0] == 0:
+                dict_append(sigs, extract_sig(sig),  format_package(header))
+            else:
+                dict_append(wrong_sigs, extract_sig(sig),  format_package(header))
+    except rpm._rpm.error as e:
+        logger.error('Error in the RPM code: {0}'.format(str(e)))
+    return (sigs, wrong_sigs)
+
+
+def process_wrong_sigs(logger, wrong_sigs):
+    try:
+        unsigneds = wrong_sigs['UNSIGNED!']
+        del wrong_sigs['UNSIGNED!']
+    except KeyError:
+        unsigneds = []
+    for package in unsigneds:
+        logger.info('Unsigned package {0}'.format(package))
+    for key in wrong_sigs:
+        for package in wrong_sigs[key]:
+            logger.info('Wrong signature with key {0} on package {1}'.format(key, package))
+
+
+def process_sigs(logger, sigs, known_keys=[]):
+    for key in known_keys:
+        try:
+            del sigs[key]
+        except KeyError:
+            pass
+    for key in sigs:
+        if (known_keys == []):
+            if len(sigs[key]) < SIG_THREASHOLD:
+                logger.info('Suspicious key {0}, only signing {1} packages:'.format(key, len(sigs[key])))
+                for package in sigs[key]:
+                    logger.info('Suspicious key {0} used on package {1}'.format(key, package))
+        else:
+            for package in sigs[key]:
+                logger.info('Unkown key {0} used on package {1}'.format(key, package))
+
+
 @logged
 def main(logger):
     renice(os.getpid())
     (failedChecksumFiles, failedLink, failedCapability) = get_broken_packages(logger)
     analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability)
-
+    (sigs, wrong_sigs) = get_signing_keys(logger)
+    process_wrong_sigs(logger, wrong_sigs)
+    process_sigs(logger, sigs)
 
 if __name__ == '__main__':
     main()
