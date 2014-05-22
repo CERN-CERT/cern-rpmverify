@@ -11,6 +11,7 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source0:	%{name}-%{version}.tgz
 
 Requires:	python-psutil
+Requires:	python-argparse
 
 %description
 Checks the integrity of the files installed via RPM by comparing their
