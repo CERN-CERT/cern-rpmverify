@@ -109,13 +109,13 @@ def process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, lin
         failedCapability.append(match.group('filename').strip())
 
 
-def get_broken_packages(logger):
+def get_broken_packages(logger, nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
     failedChecksumFiles = []
     failedLink = []
     failedCapability = []
 
     process = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-    renice(process.pid, nice=19, iovalue=7)
+    renice(process.pid, nice=nice, ioclass=ioclass, iovalue=iovalue)
 
     with Timed(logger, process, "rpm -V --all"):
         reads = [process.stdout.fileno(), process.stderr.fileno()]
