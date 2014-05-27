@@ -1,7 +1,6 @@
 #!/usr/bin/env python2.6
 
 import argparse
-import functools
 import logging
 import logging.handlers
 import os
@@ -42,57 +41,32 @@ GRACE   = 60
 SIG_THREASHOLD = 10
 
 
-def logged(fn):
-    """Decorator for logging"""
-    @functools.wraps(fn)
-    def wrapped(syslog, *args, **kwargs):
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
-        if syslog:
-            handler = logging.handlers.SysLogHandler(address='/dev/log')
-        else:
-            handler = logging.StreamHandler()
-        formatter = logging.Formatter('cern-rpmverify: %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.info('started')
-        try:
-            fn(*args, logger=logger, **kwargs)
-            logger.info('finished')
-        except KeyboardInterrupt:
-            logger.error('killed')
-        except Exception as e:
-            logger.error('failed: {0}'.format(str(e)))
-            raise
-    return wrapped
-
-
 def renice(process_id, nice=18, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=6):
     process = psutil.Process(process_id)
     process.set_nice(nice)
     process.set_ionice(ioclass, value=iovalue)
 
 
-def timeout(logger, process, name):
+def timeout(process, name):
     if process.poll() is None:
-        logger.error('{0} timeout'.format(name))
+        logging.error('{0} timeout'.format(name))
         process.terminate()
     sleep(GRACE)
     if process.poll() is None:
-        logger.error('{0} timeout HARD'.format(name))
+        logging.error('{0} timeout HARD'.format(name))
         process.terminate()
 
 
 class Timed(object):
-    def __init__(self, logger, process, name):
-        self._timer = threading.Timer(1.0 * TIMEOUT, timeout, [logger, process, name])
+    def __init__(self, process, name):
+        self._timer = threading.Timer(1.0 * TIMEOUT, timeout, [process, name])
     def __enter__(self):
         self._timer.start()
     def __exit__(self, ex_type, _ex_value, _tb):
         self._timer.cancel()
 
 
-def process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, line):
+def process_stdin(failedChecksumFiles, failedLink, failedCapability, line):
     if MISSING_RE.match(line):
         #skip missing files
         return
@@ -100,7 +74,7 @@ def process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, lin
     if match is None:
         if line == '':
             return
-        logger.info("Error parsing ''{0}''\n".format(line))
+        logging.info("Error parsing ''{0}''\n".format(line))
         return
     if match.group('attribute') == 'c':
         #skip config files
@@ -113,7 +87,7 @@ def process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, lin
         failedCapability.append(match.group('filename').strip())
 
 
-def get_broken_packages(logger, nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
+def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
     failedChecksumFiles = []
     failedLink = []
     failedCapability = []
@@ -121,21 +95,21 @@ def get_broken_packages(logger, nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue
     process = subprocess.Popen(["rpm", "-V", "--all"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     renice(process.pid, nice=nice, ioclass=ioclass, iovalue=iovalue)
 
-    with Timed(logger, process, "rpm -V --all"):
+    with Timed(process, "rpm -V --all"):
         reads = [process.stdout.fileno(), process.stderr.fileno()]
         while True:
             ret = select.select(reads, [], [])
             for fd in ret[0]:
                 if fd == process.stdout.fileno():
-                    process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
+                    process_stdin(failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
                 if fd == process.stderr.fileno():
-                    logger.error(process.stdout.readline().strip())
+                    logging.error(process.stdout.readline().strip())
             if process.poll() != None:
                 break
         for line in iter(process.stdout.readline, ''):
-            process_stdin(logger, failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
+            process_stdin(failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
         for line in iter(process.stderr.readline, ''):
-            logger.error(process.stdout.readline().strip())
+            logging.error(process.stdout.readline().strip())
 
     return (failedChecksumFiles, failedLink, failedCapability)
 
@@ -144,7 +118,7 @@ def format_package(header):
     return '{0}-{1}-{2}'.format(header[rpm.RPMTAG_NAME], header[rpm.RPMTAG_VERSION], header[rpm.RPMTAG_RELEASE])
 
 
-def analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability):
+def analyse_broken(failedChecksumFiles, failedLink, failedCapability):
     try:
         transactionSet = rpm.TransactionSet()
         headers = transactionSet.dbMatch()
@@ -152,23 +126,23 @@ def analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability):
         for header in headers:
             for filename in header[rpm.RPMTAG_FILENAMES]:
                 if filename in failedChecksumFiles:
-                    logger.info('File {0} from package {1} has been modified'.format(filename, format_package(header)))
+                    logging.info('File {0} from package {1} has been modified'.format(filename, format_package(header)))
                     failedChecksumFiles.remove(filename)
                 if filename in failedLink:
-                    logger.info('Link {0} from package {1} has been modified'.format(filename, format_package(header)))
+                    logging.info('Link {0} from package {1} has been modified'.format(filename, format_package(header)))
                     failedLink.remove(filename)
                 if filename in failedCapability:
-                    logger.info('Capacity on file {0} from package {1} has been modified'.format(filename, format_package(header)))
+                    logging.info('Capacity on file {0} from package {1} has been modified'.format(filename, format_package(header)))
                     failedCapability.remove(filename)
 
         for filename in failedChecksumFiles:
-            logger.info("File " + filename + " from unknown package  has been modified\n")
+            logging.info("File " + filename + " from unknown package  has been modified\n")
         for filename in failedLink:
-            logger.info("Link " + filename + " from unknown package  has been modified\n")
+            logging.info("Link " + filename + " from unknown package  has been modified\n")
         for filename in failedCapability:
-            logger.info("Capacity on file " + filename + " from unknown package  has been modified\n")
+            logging.info("Capacity on file " + filename + " from unknown package  has been modified\n")
     except rpm._rpm.error as e:
-        logger.error("Error in the RPM code: {0}".format(str(e)))
+        logging.error("Error in the RPM code: {0}".format(str(e)))
 
 
 def dict_append(dic, key, val):
@@ -185,7 +159,7 @@ def extract_sig(sig):
     return raw.strip()
 
 
-def get_signing_keys(logger):
+def get_signing_keys():
     sigs = {}
     wrong_sigs = {}
     try:
@@ -202,11 +176,11 @@ def get_signing_keys(logger):
             else:
                 dict_append(wrong_sigs, extract_sig(sig),  format_package(header))
     except rpm._rpm.error as e:
-        logger.error('Error in the RPM code: {0}'.format(str(e)))
+        logging.error('Error in the RPM code: {0}'.format(str(e)))
     return (sigs, wrong_sigs)
 
 
-def process_wrong_sigs(logger, wrong_sigs, ignore_unsigned):
+def process_wrong_sigs(wrong_sigs, ignore_unsigned):
     try:
         unsigneds = wrong_sigs['UNSIGNED!']
         del wrong_sigs['UNSIGNED!']
@@ -214,13 +188,13 @@ def process_wrong_sigs(logger, wrong_sigs, ignore_unsigned):
         unsigneds = []
     if not ignore_unsigned:
         for package in unsigneds:
-            logger.info('Unsigned package {0}'.format(package))
+            logging.info('Unsigned package {0}'.format(package))
     for key in wrong_sigs:
         for package in wrong_sigs[key]:
-            logger.info('Wrong signature with key {0} on package {1}'.format(key, package))
+            logging.info('Wrong signature with key {0} on package {1}'.format(key, package))
 
 
-def process_sigs(logger, sigs, known_keys=[]):
+def process_sigs(sigs, known_keys=[]):
     for key in known_keys:
         try:
             del sigs[key]
@@ -229,12 +203,12 @@ def process_sigs(logger, sigs, known_keys=[]):
     for key in sigs:
         if (known_keys == []):
             if len(sigs[key]) < SIG_THREASHOLD:
-                logger.info('Suspicious key {0}, only signing {1} packages:'.format(key, len(sigs[key])))
+                logging.info('Suspicious key {0}, only signing {1} packages:'.format(key, len(sigs[key])))
                 for package in sigs[key]:
-                    logger.info('Suspicious key {0} used on package {1}'.format(key, package))
+                    logging.info('Suspicious key {0} used on package {1}'.format(key, package))
         else:
             for package in sigs[key]:
-                logger.info('Unkown key {0} used on package {1}'.format(key, package))
+                logging.info('Unkown key {0} used on package {1}'.format(key, package))
 
 
 def get_conf():
@@ -250,21 +224,37 @@ def get_conf():
     parser.add_argument('--ignore-unsigned', action='store_true', help='Ignore unsigned rpms (dangerous!)')
     return parser.parse_args()
 
-@logged
-def main(logger, conf):
+def main(conf):
     renice(os.getpid(), nice=(conf.nice - conf.priority_diff), ioclass=conf.ioclass, iovalue=(conf.ionice - conf.priority_diff))
     if not conf.disable_hash:
-        (failedChecksumFiles, failedLink, failedCapability) = get_broken_packages(logger, nice=conf.nice, ioclass=conf.ioclass, iovalue=conf.ionice)
-        analyse_broken(logger, failedChecksumFiles, failedLink, failedCapability)
+        (failedChecksumFiles, failedLink, failedCapability) = get_broken_packages(nice=conf.nice, ioclass=conf.ioclass, iovalue=conf.ionice)
+        analyse_broken(failedChecksumFiles, failedLink, failedCapability)
     if not conf.disable_signatures: 
-        (sigs, wrong_sigs) = get_signing_keys(logger)
-        process_wrong_sigs(logger, wrong_sigs, conf.ignore_unsigned)
+        (sigs, wrong_sigs) = get_signing_keys()
+        process_wrong_sigs(wrong_sigs, conf.ignore_unsigned)
         if conf.trusted_keys:
-            process_sigs(logger, sigs, known_keys=conf.trusted_keys.split(','))
+            process_sigs(sigs, known_keys=conf.trusted_keys.split(','))
         else:
-            process_sigs(logger, sigs)
+            process_sigs(sigs)
 
 
 if __name__ == '__main__':
     conf = get_conf()
-    main(not conf.here, conf=conf)
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    if conf.here:
+        handler = logging.StreamHandler()
+    else:
+        handler = logging.handlers.SysLogHandler(address='/dev/log')
+    formatter = logging.Formatter('cern-rpmverify: %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logging.info('started')
+    try:
+        main(conf)
+        logging.info('finished')
+    except KeyboardInterrupt:
+        logging.error('killed')
+    except Exception as e:
+        logging.error('failed: {0}'.format(str(e)))
+        raise
