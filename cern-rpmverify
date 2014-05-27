@@ -66,7 +66,7 @@ class Timed(object):
         self._timer.cancel()
 
 
-def process_stdin(failedChecksumFiles, failedLink, failedCapability, line):
+def process_stdin(failedchecksumfiles, failedlink, failedcapability, line):
     if MISSING_RE.match(line):
         #skip missing files
         return
@@ -80,17 +80,17 @@ def process_stdin(failedChecksumFiles, failedLink, failedCapability, line):
         #skip config files
         return
     if match.group('md5') != '.':
-        failedChecksumFiles.append(match.group('filename').strip())
+        failedchecksumfiles.append(match.group('filename').strip())
     if match.group('link') != '.':
-        failedLink.append(match.group('filename').strip())
+        failedlink.append(match.group('filename').strip())
     if match.group('capability') != '.':
-        failedCapability.append(match.group('filename').strip())
+        failedcapability.append(match.group('filename').strip())
 
 
 def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
-    failedChecksumFiles = []
-    failedLink = []
-    failedCapability = []
+    failedchecksumfiles = []
+    failedlink = []
+    failedcapability = []
 
     process = subprocess.Popen(["rpm", "-V", "--all"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     renice(process.pid, nice=nice, ioclass=ioclass, iovalue=iovalue)
@@ -99,47 +99,47 @@ def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
         reads = [process.stdout.fileno(), process.stderr.fileno()]
         while True:
             ret = select.select(reads, [], [])
-            for fd in ret[0]:
-                if fd == process.stdout.fileno():
-                    process_stdin(failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
-                if fd == process.stderr.fileno():
+            for fdesc in ret[0]:
+                if fdesc == process.stdout.fileno():
+                    process_stdin(failedchecksumfiles, failedlink, failedcapability, process.stdout.readline().strip())
+                if fdesc == process.stderr.fileno():
                     logging.error(process.stdout.readline().strip())
             if process.poll() != None:
                 break
         for line in iter(process.stdout.readline, ''):
-            process_stdin(failedChecksumFiles, failedLink, failedCapability, process.stdout.readline().strip())
+            process_stdin(failedchecksumfiles, failedlink, failedcapability, process.stdout.readline().strip())
         for line in iter(process.stderr.readline, ''):
             logging.error(process.stdout.readline().strip())
 
-    return (failedChecksumFiles, failedLink, failedCapability)
+    return (failedchecksumfiles, failedlink, failedcapability)
 
 
 def format_package(header):
     return '{0}-{1}-{2}'.format(header[rpm.RPMTAG_NAME], header[rpm.RPMTAG_VERSION], header[rpm.RPMTAG_RELEASE])
 
 
-def analyse_broken(failedChecksumFiles, failedLink, failedCapability):
+def analyse_broken(failedchecksumfiles, failedlink, failedcapability):
     try:
-        transactionSet = rpm.TransactionSet()
-        headers = transactionSet.dbMatch()
+        transactionset = rpm.TransactionSet()
+        headers = transactionset.dbMatch()
 
         for header in headers:
             for filename in header[rpm.RPMTAG_FILENAMES]:
-                if filename in failedChecksumFiles:
+                if filename in failedchecksumfiles:
                     logging.info('File {0} from package {1} has been modified'.format(filename, format_package(header)))
-                    failedChecksumFiles.remove(filename)
-                if filename in failedLink:
+                    failedchecksumfiles.remove(filename)
+                if filename in failedlink:
                     logging.info('Link {0} from package {1} has been modified'.format(filename, format_package(header)))
-                    failedLink.remove(filename)
-                if filename in failedCapability:
+                    failedlink.remove(filename)
+                if filename in failedcapability:
                     logging.info('Capacity on file {0} from package {1} has been modified'.format(filename, format_package(header)))
-                    failedCapability.remove(filename)
+                    failedcapability.remove(filename)
 
-        for filename in failedChecksumFiles:
+        for filename in failedchecksumfiles:
             logging.info("File " + filename + " from unknown package  has been modified\n")
-        for filename in failedLink:
+        for filename in failedlink:
             logging.info("Link " + filename + " from unknown package  has been modified\n")
-        for filename in failedCapability:
+        for filename in failedcapability:
             logging.info("Capacity on file " + filename + " from unknown package  has been modified\n")
     except rpm.error:
         logging.exception("Error in the RPM code")
@@ -163,8 +163,8 @@ def get_signing_keys():
     sigs = {}
     wrong_sigs = {}
     try:
-        transactionSet = rpm.TransactionSet()
-        headers = transactionSet.dbMatch()
+        transactionset = rpm.TransactionSet()
+        headers = transactionset.dbMatch()
 
         for header in headers:
             if not (header[rpm.RPMTAG_DSAHEADER] or header[rpm.RPMTAG_RSAHEADER]):
@@ -227,8 +227,8 @@ def get_conf():
 def main(conf):
     renice(os.getpid(), nice=(conf.nice - conf.priority_diff), ioclass=conf.ioclass, iovalue=(conf.ionice - conf.priority_diff))
     if not conf.disable_hash:
-        (failedChecksumFiles, failedLink, failedCapability) = get_broken_packages(nice=conf.nice, ioclass=conf.ioclass, iovalue=conf.ionice)
-        analyse_broken(failedChecksumFiles, failedLink, failedCapability)
+        (failedchecksumfiles, failedlink, failedcapability) = get_broken_packages(nice=conf.nice, ioclass=conf.ioclass, iovalue=conf.ionice)
+        analyse_broken(failedchecksumfiles, failedlink, failedcapability)
     if not conf.disable_signatures: 
         (sigs, wrong_sigs) = get_signing_keys()
         process_wrong_sigs(wrong_sigs, conf.ignore_unsigned)
