@@ -141,8 +141,8 @@ def analyse_broken(failedChecksumFiles, failedLink, failedCapability):
             logging.info("Link " + filename + " from unknown package  has been modified\n")
         for filename in failedCapability:
             logging.info("Capacity on file " + filename + " from unknown package  has been modified\n")
-    except rpm._rpm.error as e:
-        logging.error("Error in the RPM code: {0}".format(str(e)))
+    except rpm.error:
+        logging.exception("Error in the RPM code")
 
 
 def dict_append(dic, key, val):
@@ -175,8 +175,8 @@ def get_signing_keys():
                 dict_append(sigs, extract_sig(sig), format_package(header))
             else:
                 dict_append(wrong_sigs, extract_sig(sig), format_package(header))
-    except rpm._rpm.error as e:
-        logging.error('Error in the RPM code: {0}'.format(str(e)))
+    except rpm.error:
+        logging.exception("Error in the RPM code")
     return (sigs, wrong_sigs)
 
 
@@ -255,6 +255,6 @@ if __name__ == '__main__':
         logging.info('finished')
     except KeyboardInterrupt:
         logging.error('killed')
-    except Exception as e:
-        logging.error('failed: {0}'.format(str(e)))
+    except Exception:
+        logging.exception('failed')
         raise
