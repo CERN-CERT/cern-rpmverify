@@ -194,14 +194,14 @@ def process_wrong_sigs(wrong_sigs, ignore_unsigned):
             logging.info('Wrong signature with key {0} on package {1}'.format(key, package))
 
 
-def process_sigs(sigs, known_keys=[]):
+def process_sigs(sigs, known_keys=None):
     for key in known_keys:
         try:
             del sigs[key]
         except KeyError:
             pass
     for key in sigs:
-        if (known_keys == []):
+        if known_keys is None:
             if len(sigs[key]) < SIG_THREASHOLD:
                 logging.info('Suspicious key {0}, only signing {1} packages:'.format(key, len(sigs[key])))
                 for package in sigs[key]:
