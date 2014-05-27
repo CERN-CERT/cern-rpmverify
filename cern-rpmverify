@@ -49,11 +49,11 @@ def renice(process_id, nice=18, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=6):
 
 def timeout(process, name):
     if process.poll() is None:
-        logging.error('{0} timeout'.format(name))
+        logging.error('%s timeout', name)
         process.terminate()
     sleep(GRACE)
     if process.poll() is None:
-        logging.error('{0} timeout HARD'.format(name))
+        logging.error('%s timeout HARD', name)
         process.terminate()
 
 
@@ -74,7 +74,7 @@ def process_stdin(failedchecksumfiles, failedlink, failedcapability, line):
     if match is None:
         if line == '':
             return
-        logging.info("Error parsing ''{0}''\n".format(line))
+        logging.info("Error parsing ''%s''", line)
         return
     if match.group('attribute') == 'c':
         #skip config files
@@ -198,10 +198,10 @@ def process_wrong_sigs(wrong_sigs, ignore_unsigned):
         unsigneds = []
     if not ignore_unsigned:
         for package in unsigneds:
-            logging.info('Unsigned package {0}'.format(package))
+            logging.info('Unsigned package %s', package)
     for key in wrong_sigs:
         for package in wrong_sigs[key]:
-            logging.info('Wrong signature with key {0} on package {1}'.format(key, package))
+            logging.info('Wrong signature with key %s on package %s', key, package)
 
 
 def process_sigs(sigs, known_keys=None):
@@ -213,12 +213,12 @@ def process_sigs(sigs, known_keys=None):
     for key in sigs:
         if known_keys is None:
             if len(sigs[key]) < SIG_THREASHOLD:
-                logging.info('Suspicious key {0}, only signing {1} packages:'.format(key, len(sigs[key])))
+                logging.info('Suspicious key %s, only signing %s packages:', key, len(sigs[key]))
                 for package in sigs[key]:
-                    logging.info('Suspicious key {0} used on package {1}'.format(key, package))
+                    logging.info('Suspicious key %s used on package %s', key, package)
         else:
             for package in sigs[key]:
-                logging.info('Unkown key {0} used on package {1}'.format(key, package))
+                logging.info('Unknown key %s used on package %s', key, package)
 
 
 def get_conf():
