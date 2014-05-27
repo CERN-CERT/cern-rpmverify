@@ -64,8 +64,8 @@ def timeout(process, name):
 
 class Timed(object):
     """Kill process after delay (plus GRACE)"""
-    def __init__(self, process, name):
-        self._timer = threading.Timer(1.0 * TIMEOUT, timeout, [process, name])
+    def __init__(self, delay, process, name):
+        self._timer = threading.Timer(delay, timeout, [process, name])
     def __enter__(self):
         self._timer.start()
     def __exit__(self, ex_type, _ex_value, _tb):
@@ -105,7 +105,7 @@ def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
                                stderr=subprocess.PIPE)
     renice(process.pid, nice=nice, ioclass=ioclass, iovalue=iovalue)
 
-    with Timed(process, "rpm -V --all"):
+    with Timed(1.0 * TIMEOUT, process, "rpm -V --all"):
         reads = [process.stdout.fileno(), process.stderr.fileno()]
         while True:
             ret = select.select(reads, [], [])
