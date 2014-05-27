@@ -92,7 +92,9 @@ def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
     failedlink = []
     failedcapability = []
 
-    process = subprocess.Popen(["rpm", "-V", "--all"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(["rpm", "-V", "--all"],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
     renice(process.pid, nice=nice, ioclass=ioclass, iovalue=iovalue)
 
     with Timed(process, "rpm -V --all"):
@@ -101,7 +103,9 @@ def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
             ret = select.select(reads, [], [])
             for fdesc in ret[0]:
                 if fdesc == process.stdout.fileno():
-                    process_stdin(failedchecksumfiles, failedlink, failedcapability, process.stdout.readline().strip())
+                    process_stdin(failedchecksumfiles, failedlink,
+                                  failedcapability,
+                                  process.stdout.readline().strip())
                 if fdesc == process.stderr.fileno():
                     line = process.stdout.readline().strip()
                     if line != '':
@@ -109,7 +113,8 @@ def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
             if process.poll() != None:
                 break
         for line in iter(process.stdout.readline, ''):
-            process_stdin(failedchecksumfiles, failedlink, failedcapability, process.stdout.readline().strip())
+            process_stdin(failedchecksumfiles, failedlink,
+                          failedcapability, process.stdout.readline().strip())
         for line in iter(process.stderr.readline, ''):
             logging.error(process.stdout.readline().strip())
 
@@ -117,7 +122,9 @@ def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
 
 
 def format_package(header):
-    return '{0}-{1}-{2}'.format(header[rpm.RPMTAG_NAME], header[rpm.RPMTAG_VERSION], header[rpm.RPMTAG_RELEASE])
+    return '{0}-{1}-{2}'.format(header[rpm.RPMTAG_NAME],
+                                header[rpm.RPMTAG_VERSION],
+                                header[rpm.RPMTAG_RELEASE])
 
 
 def log_change(desc, filename, header):
@@ -177,14 +184,16 @@ def get_signing_keys():
         headers = transactionset.dbMatch()
 
         for header in headers:
-            if not (header[rpm.RPMTAG_DSAHEADER] or header[rpm.RPMTAG_RSAHEADER]):
+            if not (header[rpm.RPMTAG_DSAHEADER] or
+                    header[rpm.RPMTAG_RSAHEADER]):
                 dict_append(wrong_sigs, 'UNSIGNED!', format_package(header))
                 continue
             sig = getSigInfo(header)
             if sig[0] == 0:
                 dict_append(sigs, extract_sig(sig), format_package(header))
             else:
-                dict_append(wrong_sigs, extract_sig(sig), format_package(header))
+                dict_append(wrong_sigs, extract_sig(sig),
+                            format_package(header))
     except rpm.error:
         logging.exception("Error in the RPM code")
     return (sigs, wrong_sigs)
@@ -201,7 +210,8 @@ def process_wrong_sigs(wrong_sigs, ignore_unsigned):
             logging.info('Unsigned package %s', package)
     for key in wrong_sigs:
         for package in wrong_sigs[key]:
-            logging.info('Wrong signature with key %s on package %s', key, package)
+            logging.info('Wrong signature with key %s on package %s',
+                         key, package)
 
 
 def process_sigs(sigs, known_keys=None):
@@ -213,9 +223,11 @@ def process_sigs(sigs, known_keys=None):
     for key in sigs:
         if known_keys is None:
             if len(sigs[key]) < SIG_THREASHOLD:
-                logging.info('Suspicious key %s, only signing %s packages:', key, len(sigs[key]))
+                logging.info('Suspicious key %s, only signing %s packages:',
+                             key, len(sigs[key]))
                 for package in sigs[key]:
-                    logging.info('Suspicious key %s used on package %s', key, package)
+                    logging.info('Suspicious key %s used on package %s', key,
+                                 package)
         else:
             for package in sigs[key]:
                 logging.info('Unknown key %s used on package %s', key, package)
@@ -223,24 +235,34 @@ def process_sigs(sigs, known_keys=None):
 
 def get_conf():
     parser = argparse.ArgumentParser(description='Verify installed RPMS')
-    parser.add_argument('--nice', default=19, type=int, help='Set the scheduling priority (default: %(default)s)')
-    parser.add_argument('--ioclass', default=psutil.IOPRIO_CLASS_BE, type=int, help='Set the io scheduling class (default: %(default)s)')
-    parser.add_argument('--ionice', default=7, type=int, help='Set the io scheduling priority (default: %(default)s)')
-    parser.add_argument('--priority-diff', default=1, type=int, help='Priority difference between parsing and hashing')
-    parser.add_argument('-f', action='store_true', dest='here', help='Print logs on the screen instead of using syslog')
-    parser.add_argument('--disable-hash', action='store_true', help='Disable rpm verification (hashing files)')
-    parser.add_argument('--disable-signatures', action='store_true', help='Disable signature verification')
-    parser.add_argument('--trusted-keys', help='Coma-separated list of trusted signing keys')
-    parser.add_argument('--ignore-unsigned', action='store_true', help='Ignore unsigned rpms (dangerous!)')
+    parser.add_argument('--nice', default=19, type=int,
+                        help='Set the scheduling priority (default: %(default)s)')
+    parser.add_argument('--ioclass', default=psutil.IOPRIO_CLASS_BE, type=int,
+                        help='Set the io scheduling class (default: %(default)s)')
+    parser.add_argument('--ionice', default=7, type=int,
+                        help='Set the io scheduling priority (default: %(default)s)')
+    parser.add_argument('--priority-diff', default=1, type=int,
+                        help='Priority difference between parsing and hashing')
+    parser.add_argument('-f', action='store_true', dest='here',
+                        help='Print logs on the screen instead of using syslog')
+    parser.add_argument('--disable-hash', action='store_true',
+                        help='Disable rpm verification (hashing files)')
+    parser.add_argument('--disable-signatures', action='store_true',
+                        help='Disable signature verification')
+    parser.add_argument('--trusted-keys',
+                        help='Coma-separated list of trusted signing keys')
+    parser.add_argument('--ignore-unsigned', action='store_true',
+                        help='Ignore unsigned rpms (dangerous!)')
     return parser.parse_args()
 
 
 def do_it(conf):
-    renice(os.getpid(), nice=(conf.nice - conf.priority_diff), ioclass=conf.ioclass, iovalue=(conf.ionice - conf.priority_diff))
+    renice(os.getpid(), nice=(conf.nice - conf.priority_diff),
+           ioclass=conf.ioclass, iovalue=(conf.ionice - conf.priority_diff))
     if not conf.disable_hash:
         (failedchecksumfiles, failedlink, failedcapability) = get_broken_packages(nice=conf.nice, ioclass=conf.ioclass, iovalue=conf.ionice)
         analyse_broken(failedchecksumfiles, failedlink, failedcapability)
-    if not conf.disable_signatures: 
+    if not conf.disable_signatures:
         (sigs, wrong_sigs) = get_signing_keys()
         process_wrong_sigs(wrong_sigs, conf.ignore_unsigned)
         if conf.trusted_keys:
