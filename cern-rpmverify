@@ -231,11 +231,12 @@ def process_wrong_sigs(wrong_sigs, ignore_unsigned):
 
 def process_sigs(sigs, known_keys=None):
     """Process correctly signed packages' keys: do we trust them?"""
-    for key in known_keys:
-        try:
-            del sigs[key]
-        except KeyError:
-            pass
+    if known_keys is not None:
+        for key in known_keys:
+            try:
+                del sigs[key]
+            except KeyError:
+                pass
     for key in sigs:
         if known_keys is None:
             if len(sigs[key]) < SIG_THREASHOLD:
