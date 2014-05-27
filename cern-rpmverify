@@ -120,6 +120,14 @@ def format_package(header):
     return '{0}-{1}-{2}'.format(header[rpm.RPMTAG_NAME], header[rpm.RPMTAG_VERSION], header[rpm.RPMTAG_RELEASE])
 
 
+def log_change(desc, filename, header):
+    if header is None:
+        package = 'UNKNOWN package'
+    else:
+        package = 'package {0}'.format(format_package(header))
+    logging.info('%s %s from %s has been modified', desc, filename, package)
+
+
 def analyse_broken(failedchecksumfiles, failedlink, failedcapability):
     try:
         transactionset = rpm.TransactionSet()
@@ -128,21 +136,21 @@ def analyse_broken(failedchecksumfiles, failedlink, failedcapability):
         for header in headers:
             for filename in header[rpm.RPMTAG_FILENAMES]:
                 if filename in failedchecksumfiles:
-                    logging.info('File {0} from package {1} has been modified'.format(filename, format_package(header)))
+                    log_change('File', filename, header)
                     failedchecksumfiles.remove(filename)
                 if filename in failedlink:
-                    logging.info('Link {0} from package {1} has been modified'.format(filename, format_package(header)))
+                    log_change('Link', filename, header)
                     failedlink.remove(filename)
                 if filename in failedcapability:
-                    logging.info('Capacity on file {0} from package {1} has been modified'.format(filename, format_package(header)))
+                    log_change('Capacity on file', filename, header)
                     failedcapability.remove(filename)
 
         for filename in failedchecksumfiles:
-            logging.info("File " + filename + " from unknown package  has been modified\n")
+            log_change('File', filename, None)
         for filename in failedlink:
-            logging.info("Link " + filename + " from unknown package  has been modified\n")
+            log_change('Link', filename, None)
         for filename in failedcapability:
-            logging.info("Capacity on file " + filename + " from unknown package  has been modified\n")
+            log_change('Capacity on file', filename, None)
     except rpm.error:
         logging.exception("Error in the RPM code")
 
