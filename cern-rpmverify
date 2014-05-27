@@ -24,17 +24,17 @@ except:
 
 
 MISSING_RE = re.compile("^missing")
-MATCH_RE   = re.compile(r'^(?P<size>\.|S)'
-                         '(?P<mode>\.|M)'
-                         '(?P<md5>[\?\.5])'
-                         '(?P<device>\.|D)'
-                         '(?P<link>\.|L)'
-                         '(?P<user>\.|U)'
-                         '(?P<group>\.|G)'
-                         '(?P<mtime>\.|T)'
-                         '(?P<capability>\.|P)'
-                         '  (?P<attribute>[cdglr ]?) '
-                         '(?P<filename>\/.*)$')
+MATCH_RE = re.compile(r'^(?P<size>\.|S)'
+                      r'(?P<mode>\.|M)'
+                      r'(?P<md5>[\?\.5])'
+                      r'(?P<device>\.|D)'
+                      r'(?P<link>\.|L)'
+                      r'(?P<user>\.|U)'
+                      r'(?P<group>\.|G)'
+                      r'(?P<mtime>\.|T)'
+                      r'(?P<capability>\.|P)'
+                      r'  (?P<attribute>[cdglr ]?) '
+                      r'(?P<filename>\/.*)$')
 
 TIMEOUT = 3600 * 22
 GRACE   = 60
