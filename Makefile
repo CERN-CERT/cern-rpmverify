@@ -103,7 +103,6 @@ dist: $(name)-$(version).tgz
 
 %.tgz:
 	@git archive --format=tar --prefix=$(name)-$(version)/ v$(version) \
-	| tar --delete "$(name)-$(version)/webpage" --delete "$(name)-$(version)/.git*" \
 	| gzip > $(name)-$(version).tgz
 
 dir.%:
