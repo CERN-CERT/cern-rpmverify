@@ -103,7 +103,9 @@ def get_broken_packages(nice=19, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=7):
                 if fdesc == process.stdout.fileno():
                     process_stdin(failedchecksumfiles, failedlink, failedcapability, process.stdout.readline().strip())
                 if fdesc == process.stderr.fileno():
-                    logging.error(process.stdout.readline().strip())
+                    line = process.stdout.readline().strip()
+                    if line != '':
+                        logging.error(line)
             if process.poll() != None:
                 break
         for line in iter(process.stdout.readline, ''):
