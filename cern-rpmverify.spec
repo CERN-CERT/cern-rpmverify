@@ -1,5 +1,5 @@
 Name:		cern-rpmverify
-Version:	4.0
+Version:	4.1
 Release:	1%{?dist}
 Summary:	Logs warnings for modified files of an RPM and the RPM package that they belong
 Vendor:		CERN
@@ -39,6 +39,9 @@ rm -rf %{buildroot}
 /etc/cron.d/cern-rpmverify.cron
 
 %changelog
+* Fri Jun 13 2014 Vincent Brillault <vincent.brillault@cern.ch> - 4.1
+- Improve logging
+- PEP8 & other code cleaning
 * Thu May 22 2014 Vincent Brillault <vincent.brillault@cern.ch> - 4.0
 - Refactor code
 - Add nice/ionice options
