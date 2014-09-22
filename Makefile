@@ -7,7 +7,7 @@ name      = cern-rpmverify
 # Distributions which src rpms are built for by default
 # The corresponding spec file is needed: DIST/$(name).spec
 #
-DISTS     = slc5 slc6
+DISTS     ?= slc6 el7.centos
 
 #
 # Get current version number
@@ -109,6 +109,7 @@ dir.%:
 	@mkdir -p $*
 
 srpms: $(DISTS:=.srpm)
+rpms: $(DISTS:=.rpm)
 
 slc5.srpm: $(name).spec dist dir.rpms
 	@$(RPMBUILD) --define "_sourcedir ${PWD}" --define "_srcrpmdir ${PWD}/rpms" --define "dist .slc5" --define '_source_filedigest_algorithm 1' --define '_binary_filedigest_algorithm 1' --define '_binary_payload w9.gzdio' -bs $<;
