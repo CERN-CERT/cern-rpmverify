@@ -11,7 +11,9 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source0:	%{name}-%{version}.tgz
 
 Requires:	python-psutil
+%if 0%{?el6}
 Requires:	python-argparse
+%endif
 
 %description
 Checks the integrity of the files installed via RPM by comparing their
@@ -22,6 +24,9 @@ integrity to the RPM DB.
 %setup -q
 
 %build
+%if 0%{?el6}
+sed 's#/usr/bin/env python#/usr/bin/env python2.6#' -i cern-rpmverify
+%endif
 
 %install
 rm -rf %{buildroot}
