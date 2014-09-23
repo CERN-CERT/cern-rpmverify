@@ -25,7 +25,7 @@ integrity to the RPM DB.
 
 %build
 %if 0%{?el6}
-sed 's#/usr/bin/env python#/usr/bin/env python2.6#' -i cern-rpmverify
+sed 's#/usr/bin/env python$#/usr/bin/env python2.6#' -i cern-rpmverify
 %endif
 
 %install
