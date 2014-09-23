@@ -1,6 +1,6 @@
 Name:		cern-rpmverify
 Version:	4.1
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	Logs warnings for modified files of an RPM and the RPM package that they belong
 Vendor:		CERN
 Group:		Applications/System
