@@ -1,6 +1,6 @@
 Name:		cern-rpmverify
-Version:	4.1
-Release:	4%{?dist}
+Version:	4.2
+Release:	1%{?dist}
 Summary:	Logs warnings for modified files of an RPM and the RPM package that they belong
 Vendor:		CERN
 Group:		Applications/System
@@ -44,6 +44,8 @@ rm -rf %{buildroot}
 /etc/cron.d/cern-rpmverify.cron
 
 %changelog
+* Wed Dec 06 2017 Vincent Brillault <vincent.brillault@cern.ch> - 4.2
+- Fix deprecation warning for SLC6.9 (psutil)
 * Fri Jun 13 2014 Vincent Brillault <vincent.brillault@cern.ch> - 4.1
 - Improve logging
 - PEP8 & other code cleaning
