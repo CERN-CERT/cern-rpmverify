@@ -47,8 +47,12 @@ SIG_THREASHOLD = 10
 def renice(process_id, nice=18, ioclass=psutil.IOPRIO_CLASS_BE, iovalue=6):
     """Change the nice priority and ionice class/priority of a pid"""
     process = psutil.Process(process_id)
-    process.nice(nice)
-    process.ionice(ioclass, value=iovalue)
+    try:
+        process.ionice(ioclass, value=iovalue)
+        process.nice(nice)
+    except AttributeError:
+        process.set_ionice(ioclass, value=iovalue)
+        process.set_nice(nice)
 
 
 def timeout(process, name):
