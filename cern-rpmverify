@@ -40,7 +40,7 @@ MATCH_RE = re.compile(r'^(?P<size>\.|S)'
                       r'(?P<filename>\/.*)$')
 
 TIMEOUT = 3600 * 22
-GRACE = 60
+GRACE = 3600
 SIG_THREASHOLD = 10
 
 
